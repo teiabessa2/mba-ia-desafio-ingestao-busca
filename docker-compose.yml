@@ -1,33 +1,35 @@
+version: "3.9"  # Versão do formato do docker-compose
+
 services:
   postgres:
-    image: pgvector/pgvector:pg17
-    container_name: postgres_rag
+    image: pgvector/pgvector:pg17   # Imagem oficial do Postgres já com extensão pgvector
+    container_name: postgres_rag    # Nome do container
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: rag
+      POSTGRES_USER: postgres       # Usuário padrão
+      POSTGRES_PASSWORD: postgres   # Senha padrão
+      POSTGRES_DB: rag              # Nome do banco
     ports:
-      - "5432:5432"
+      - "5433:5432"                 # Porta externa 5433 -> interna 5432 (evita conflito)
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
+      - postgres_data:/var/lib/postgresql/data  # Volume persistente
+    healthcheck:                    # Teste automático de saúde
       test: ["CMD-SHELL", "pg_isready -U postgres -d rag"]
       interval: 10s
       timeout: 5s
       retries: 5
-    restart: unless-stopped
+    restart: unless-stopped         # Reinicia se cair
 
   bootstrap_vector_ext:
-    image: pgvector/pgvector:pg17
+    image: pgvector/pgvector:pg17   # Usa mesma imagem
     depends_on:
       postgres:
-        condition: service_healthy
-    entrypoint: ["/bin/sh", "-c"]
+        condition: service_healthy  # Só roda quando Postgres estiver pronto
+    entrypoint: ["/bin/sh", "-c"]   # Executa comando shell
     command: >
       PGPASSWORD=postgres
       psql "postgresql://postgres@postgres:5432/rag" -v ON_ERROR_STOP=1
       -c "CREATE EXTENSION IF NOT EXISTS vector;"
-    restart: "no"
+    restart: "no"                   # Roda uma vez e termina
 
 volumes:
-  postgres_data:
+  postgres_data:                    # Volume persistente
